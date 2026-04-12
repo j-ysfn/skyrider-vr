@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SkyRider VR – Manual</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+    :root {
+      --blue: #00d4ff; --purple: #7c3aed; --dark: #000d1a;
+      --mid:  #0a1f3a; --text: #cde; --dim: #5577aa;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background: var(--dark); color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      line-height: 1.8; min-height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      background: linear-gradient(135deg, #000510, #0a1628, #0d1f3c);
+      border-bottom: 1px solid #00d4ff33;
+      padding: 3rem 2rem 2rem;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    header::before {
+      content: ''; position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        90deg, transparent, transparent 40px,
+        #00d4ff04 40px, #00d4ff04 41px
+      );
+    }
+    .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      font-weight: 900; letter-spacing: 0.2em;
+      background: linear-gradient(135deg, #00d4ff, #7c3aed);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; position: relative; z-index:1;
+    }
+    .logo-sub {
+      font-size: 0.85rem; letter-spacing: 0.5em; color: var(--dim);
+      margin-top: 0.4rem; position: relative; z-index:1;
+    }
+    .badge {
+      display: inline-block; margin-top: 1.2rem;
+      padding: 0.3rem 1rem; border: 1px solid #00d4ff44;
+      color: var(--blue); font-size: 0.75rem; letter-spacing: 0.2em;
+      background: #00d4ff0a; position: relative; z-index:1;
+    }
+
+    /* LAYOUT */
+    main {
+      max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem;
+    }
+
+    /* SECTIONS */
+    section { margin-bottom: 3rem; }
+    h2 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem; letter-spacing: 0.4em;
+      color: var(--blue); text-transform: uppercase;
+      border-left: 3px solid var(--blue);
+      padding-left: 1rem; margin-bottom: 1.5rem;
+      padding-top: 0.2rem; padding-bottom: 0.2rem;
+    }
+    p { color: #aac; margin-bottom: 1rem; }
+    strong { color: #fff; }
+
+    /* STEP CARDS */
+    .steps { display: flex; flex-direction: column; gap: 1rem; }
+    .step {
+      display: flex; gap: 1.2rem; align-items: flex-start;
+      background: #ffffff05; border: 1px solid #00d4ff1a;
+      padding: 1.2rem 1.5rem; border-radius: 2px;
+    }
+    .step-num {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.4rem; color: var(--blue); min-width: 2rem;
+      line-height: 1;
+    }
+    .step-body strong { color: var(--blue); display:block; margin-bottom:0.3rem; }
+    .step-body p { margin:0; }
+    code {
+      background: #00d4ff11; border: 1px solid #00d4ff33;
+      color: var(--blue); padding: 0.15rem 0.5rem; font-family: inherit;
+      font-size: 0.85em; border-radius: 2px;
+    }
+
+    /* CONTROLS TABLE */
+    table {
+      width: 100%; border-collapse: collapse; font-size: 0.88rem;
+    }
+    th {
+      text-align: left; padding: 0.7rem 1rem;
+      background: #00d4ff11; color: var(--blue);
+      border: 1px solid #00d4ff22; letter-spacing: 0.15em;
+      font-size: 0.75rem;
+    }
+    td {
+      padding: 0.7rem 1rem; border: 1px solid #ffffff0d;
+      color: #aac;
+    }
+    tr:nth-child(even) td { background: #ffffff03; }
+    .key {
+      display: inline-block; background: #00d4ff1a;
+      border: 1px solid #00d4ff44; color: var(--blue);
+      padding: 0.15rem 0.6rem; border-radius: 2px;
+      font-size: 0.82em;
+    }
+
+    /* FEATURE GRID */
+    .feat-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .feat {
+      background: #ffffff05; border: 1px solid #7c3aed33;
+      padding: 1.2rem; border-radius: 2px; text-align: center;
+    }
+    .feat-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .feat-title { color: #c4b5fd; font-size: 0.8rem; letter-spacing: 0.2em; margin-bottom:0.4rem; }
+    .feat p { font-size: 0.78rem; color: #667; margin:0; }
+
+    /* LEVELS */
+    .level-card {
+      background: #ffffff05; border: 1px solid #00d4ff22;
+      padding: 1.5rem; margin-bottom: 1rem; border-radius: 2px;
+    }
+    .level-title {
+      font-family: 'Orbitron', sans-serif; color: var(--blue);
+      font-size: 0.9rem; letter-spacing: 0.2em; margin-bottom: 0.8rem;
+    }
+    .level-stat { display: flex; gap: 2rem; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat-val { font-size: 1.8rem; color: #fff; display: block; }
+    .stat-lbl { font-size: 0.7rem; color: var(--dim); letter-spacing: 0.15em; }
+
+    /* SCORING */
+    .score-table { border: 1px solid #00d4ff22; }
+
+    /* FOOTER */
+    footer {
+      text-align: center; padding: 2rem;
+      border-top: 1px solid #00d4ff11;
+      color: var(--dim); font-size: 0.78rem;
+      letter-spacing: 0.1em;
+    }
+    footer a { color: var(--blue); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SKYRIDER VR</div>
+  <div class="logo-sub">IMMERSIVE FLIGHT SIMULATOR · GAME MANUAL</div>
+  <div class="badge">CMPT 461 · Trinity Western University · 2026</div>
+</header>
+
+<main>
+
+  <!-- OVERVIEW -->
+  <section>
+    <h2>01 · Overview</h2>
+    <p>
+      <strong>SkyRider VR</strong> is a mobile VR flight simulation game built with A-Frame WebVR.
+      You pilot a jet aircraft over a detailed city skyline — complete with a twin-tower landmark —
+      entirely through head movement. Fly through glowing rings to score points and advance through
+      two increasingly challenging levels.
+    </p>
+    <div class="feat-grid">
+      <div class="feat"><div class="feat-icon">✈</div><div class="feat-title">First-Person Flight</div><p>Full cockpit view with HUD overlay</p></div>
+      <div class="feat"><div class="feat-icon">💍</div><div class="feat-title">Ring Collection</div><p>Fly through glowing hoops to score</p></div>
+      <div class="feat"><div class="feat-icon">📱</div><div class="feat-title">Gyro Controls</div><p>Head-tilt steering via phone gyroscope</p></div>
+      <div class="feat"><div class="feat-icon">🏙️</div><div class="feat-title">Textured City</div><p>Buildings, twin towers, roads with custom textures</p></div>
+      <div class="feat"><div class="feat-icon">👓</div><div class="feat-title">Stereoscopic VR</div><p>Google Cardboard split-screen mode</p></div>
+      <div class="feat"><div class="feat-icon">🎵</div><div class="feat-title">Spatial Audio</div><p>Background music + ring collect SFX</p></div>
+    </div>
+  </section>
+
+  <!-- INSTALLATION -->
+  <section>
+    <h2>02 · Installation &amp; Setup</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Play Online (Recommended)</strong>
+          <p>Open the GitHub Pages link in your mobile browser:<br>
+          <code>https://yourusername.github.io/skyrider-vr/</code></p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Run Locally</strong>
+          <p>Clone the repository and serve with any static file server. With Node.js installed: <code>npx serve .</code> — then open <code>http://localhost:3000</code> in your browser.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Mobile VR (Google Cardboard)</strong>
+          <p>Open the game on your phone browser. In the Setup screen, enable <strong>STEREO VR</strong> mode. Tap "Start Mission" and insert your phone into a Google Cardboard headset. The scene will split into stereo view automatically.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>iOS Gyro Permission</strong>
+          <p>On iOS 13+, you will be prompted to allow device motion access when the game starts. Tap <strong>Allow</strong> to enable head-tilt controls.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTROLS -->
+  <section>
+    <h2>03 · Controls</h2>
+    <p>The game is designed for <strong>gaze-based / head-tilt controls</strong> using your phone's gyroscope. No hands or controllers required.</p>
+    <table>
+      <thead>
+        <tr><th>Input</th><th>Action</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Tilt phone <strong>up</strong></td><td>Climb (pitch up)</td><td>Hold the phone at ~45° forward to fly level</td></tr>
+        <tr><td>Tilt phone <strong>down</strong></td><td>Dive (pitch down)</td><td>Altitude clamped to 30–160m</td></tr>
+        <tr><td>Tilt phone <strong>left</strong></td><td>Bank left (yaw)</td><td>Uses gamma axis of gyroscope</td></tr>
+        <tr><td>Tilt phone <strong>right</strong></td><td>Bank right (yaw)</td><td></td></tr>
+        <tr><td><span class="key">↑ ↓ ← →</span></td><td>Pitch / Yaw (desktop)</td><td>Arrow keys for desktop testing</td></tr>
+        <tr><td><span class="key">W A S D</span></td><td>Pitch / Yaw (desktop)</td><td>WASD alternative</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- LEVELS -->
+  <section>
+    <h2>04 · Levels</h2>
+    <div class="level-card">
+      <div class="level-title">▶ LEVEL 1 — TRAINING RUN</div>
+      <p>Learn the controls over a familiar city layout. Rings are spread further apart and placed at consistent altitudes for easy acquisition.</p>
+      <div class="level-stat">
+        <div class="stat"><span class="stat-val">8</span><span class="stat-lbl">RINGS</span></div>
+        <div class="stat"><span class="stat-val">100</span><span class="stat-lbl">PTS / RING</span></div>
+        <div class="stat"><span class="stat-val">Normal</span><span class="stat-lbl">SPACING</span></div>
+      </div>
+    </div>
+    <div class="level-card">
+      <div class="level-title">▶ LEVEL 2 — CHALLENGE</div>
+      <p>More rings required, placed at tighter intervals and varied altitudes. Demands precise altitude control and quicker reactions.</p>
+      <div class="level-stat">
+        <div class="stat"><span class="stat-val">12</span><span class="stat-lbl">RINGS</span></div>
+        <div class="stat"><span class="stat-val">200</span><span class="stat-lbl">PTS / RING</span></div>
+        <div class="stat"><span class="stat-val">Tight</span><span class="stat-lbl">SPACING</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCORING -->
+  <section>
+    <h2>05 · Scoring</h2>
+    <table class="score-table">
+      <thead><tr><th>Event</th><th>Points</th></tr></thead>
+      <tbody>
+        <tr><td>Fly through ring (Level 1)</td><td>100 pts</td></tr>
+        <tr><td>Fly through ring (Level 2)</td><td>200 pts</td></tr>
+        <tr><td>Complete Level 1 (all rings)</td><td>Advance to Level 2</td></tr>
+        <tr><td>Complete Level 2 (all rings)</td><td>Mission Complete screen</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:1rem;">The <strong>scoreboard is always visible</strong> in the HUD at the top of the screen, showing current score, level, altitude, speed, and rings remaining.</p>
+  </section>
+
+  <!-- HUD -->
+  <section>
+    <h2>06 · HUD Elements</h2>
+    <table>
+      <thead><tr><th>Element</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><strong>SCORE</strong></td><td>Current total score (top left)</td></tr>
+        <tr><td><strong>LEVEL / RINGS LEFT</strong></td><td>Current level and remaining rings (top center)</td></tr>
+        <tr><td><strong>ALT / SPD</strong></td><td>Altitude in metres and forward speed (top right)</td></tr>
+        <tr><td><strong>Crosshair</strong></td><td>Center aiming reticle</td></tr>
+        <tr><td><strong>Cockpit strip</strong></td><td>Translucent instrument panel at screen bottom</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- REQUIREMENTS CHECKLIST -->
+  <section>
+    <h2>07 · Requirements Met</h2>
+    <table>
+      <thead><tr><th>Requirement</th><th>Implementation</th></tr></thead>
+      <tbody>
+        <tr><td>✅ Original game idea</td><td>First-person city flight / ring-collection</td></tr>
+        <tr><td>✅ Manual</td><td>This page</td></tr>
+        <tr><td>✅ Flash screen</td><td>Animated logo with credits + star field</td></tr>
+        <tr><td>✅ Setup option</td><td>Music, SFX, speed, starting level, VR mode</td></tr>
+        <tr><td>✅ Two levels</td><td>Level 1 (8 rings) → Level 2 (12 rings)</td></tr>
+        <tr><td>✅ Sound effects</td><td>Ring collect SFX + background music (muteable)</td></tr>
+        <tr><td>✅ Scoreboard</td><td>Always-visible HUD overlay</td></tr>
+        <tr><td>✅ Gaze/head-tilt controls</td><td>DeviceOrientation gyroscope API</td></tr>
+        <tr><td>✅ Stereoscopic VR</td><td>A-Frame VR mode for Google Cardboard</td></tr>
+        <tr><td>✅ Own objects with textures</td><td>Canvas-generated textures on all buildings</td></tr>
+        <tr><td>✅ Collision detection</td><td>3D sphere-distance check on all rings</td></tr>
+        <tr><td>✅ No blood/violence</td><td>Flight + city theme; zero combat</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- TECH STACK -->
+  <section>
+    <h2>08 · Technical Details</h2>
+    <p><strong>Engine:</strong> A-Frame 1.4.2 (WebVR/WebXR framework)<br>
+    <strong>Rendering:</strong> Three.js (via A-Frame) with WebGL<br>
+    <strong>Textures:</strong> Procedurally generated at runtime via HTML5 Canvas 2D API<br>
+    <strong>Controls:</strong> DeviceOrientationEvent API (gyroscope), keyboard fallback<br>
+    <strong>Audio:</strong> A-Frame sound component (Web Audio API)<br>
+    <strong>VR:</strong> WebXR Device API — compatible with Google Cardboard, Meta Quest browser</p>
+  </section>
+
+</main>
+
+<footer>
+  SkyRider VR &nbsp;·&nbsp; CMPT 461 Immersive Computing &nbsp;·&nbsp; Trinity Western University &nbsp;·&nbsp; 2026<br>
+  Developed by <strong>Your Name</strong>
+</footer>
+
+</body>
+</html>

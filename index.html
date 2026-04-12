@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="screen-orientation" content="landscape"/>
+  <meta name="x5-orientation" content="landscape"/>
+  <title>SkyRider VR – Flight Simulator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ── LANDSCAPE LOCK ── */
+    @media (orientation: portrait) {
+      #rotatePrompt { display: flex !important; }
+    }
+    #rotatePrompt {
+      display: none; position: fixed; inset: 0; z-index: 99999;
+      background: #000d1a; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-family: 'Courier New', monospace; color: #00d4ff;
+      text-align: center; gap: 1.5rem;
+    }
+    #rotatePrompt .r-icon { font-size: 4rem; animation: spin90 1.5s ease-in-out infinite alternate; }
+    @keyframes spin90 { from { transform: rotate(0deg); } to { transform: rotate(90deg); } }
+    #rotatePrompt p { font-size: 1rem; letter-spacing: 0.2em; color: #aac; }
+
+    /* ── GYRO PERMISSION OVERLAY (iOS) ── */
+    #gyroPrompt {
+      display: none; position: fixed; inset: 0; z-index: 99998;
+      background: #000d1acc; backdrop-filter: blur(8px);
+      flex-direction: column; align-items: center; justify-content: center;
+      font-family: 'Courier New', monospace; text-align: center; gap: 1.2rem;
+    }
+    #gyroPrompt.show { display: flex; }
+    #gyroPrompt p { color: #aac; font-size: 0.9rem; letter-spacing: 0.1em; max-width: 280px; line-height: 1.8; }
+    #gyroPrompt strong { color: #00d4ff; }
+    #gyroAllowBtn {
+      padding: 0.8rem 2.2rem; background: transparent;
+      border: 1px solid #00d4ff; color: #00d4ff;
+      font-family: inherit; font-size: 1rem;
+      letter-spacing: 0.2em; cursor: pointer; transition: all 0.3s;
+    }
+    #gyroAllowBtn:hover { background: #00d4ff22; }
+
+    /* ── OVERLAY BASE ── */
+    .overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-family: 'Courier New', monospace;
+      transition: opacity 0.8s ease;
+    }
+    .overlay.hidden { opacity: 0; pointer-events: none; }
+
+    /* ── FLASH SCREEN ── */
+    #flashScreen {
+      background: radial-gradient(ellipse at center, #0a1628 0%, #000510 100%);
+      color: #fff;
+      text-align: center;
+    }
+    .flash-stars {
+      position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+    }
+    .star {
+      position: absolute; background: #fff; border-radius: 50%;
+      animation: twinkle 2s infinite alternate;
+    }
+    @keyframes twinkle { from { opacity: 0.2; } to { opacity: 1; } }
+    .flash-logo {
+      font-size: clamp(1.8rem, 5vw, 3.5rem);
+      font-weight: 900; letter-spacing: 0.15em;
+      background: linear-gradient(135deg, #00d4ff, #0066ff, #7c3aed);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: logoGlow 2s ease-in-out infinite alternate;
+      position: relative; z-index: 1;
+    }
+    @keyframes logoGlow {
+      from { filter: drop-shadow(0 0 10px #00d4ff88); }
+      to   { filter: drop-shadow(0 0 30px #7c3aed88); }
+    }
+    .flash-subtitle {
+      font-size: clamp(0.6rem, 1.8vw, 0.85rem);
+      letter-spacing: 0.4em; color: #00d4ff99;
+      margin-top: 0.3rem; position: relative; z-index: 1;
+    }
+    .flash-divider {
+      width: 160px; height: 1px;
+      background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+      margin: 0.8rem auto; position: relative; z-index: 1;
+    }
+    .flash-credits {
+      font-size: clamp(0.65rem, 1.6vw, 0.85rem);
+      color: #aac; line-height: 1.7; position: relative; z-index: 1;
+    }
+    .flash-credits span { color: #00d4ff; }
+    .flash-plane {
+      font-size: 2.5rem; margin-top: 0.8rem;
+      animation: flyIn 1.5s ease-out forwards, hover 3s ease-in-out infinite 1.5s;
+      opacity: 0; position: relative; z-index: 1;
+    }
+    @keyframes flyIn {
+      from { transform: translateX(-200px) rotate(-10deg); opacity: 0; }
+      to   { transform: translateX(0) rotate(0deg); opacity: 1; }
+    }
+    @keyframes hover {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-8px); }
+    }
+    .flash-btn {
+      margin-top: 1rem; padding: 0.65rem 2rem;
+      background: transparent; border: 1px solid #00d4ff;
+      color: #00d4ff; font-family: inherit; font-size: 0.85rem;
+      letter-spacing: 0.3em; cursor: pointer;
+      position: relative; z-index: 1; text-transform: uppercase;
+      transition: all 0.3s;
+    }
+    .flash-btn:hover {
+      background: #00d4ff22; box-shadow: 0 0 20px #00d4ff44;
+    }
+
+    /* ── SETUP SCREEN ── */
+    #setupScreen {
+      background: radial-gradient(ellipse at 30% 70%, #0d1f3c 0%, #060d1a 60%, #000 100%);
+      color: #cde;
+    }
+    .setup-title {
+      font-size: clamp(0.8rem, 2.5vw, 1.1rem); letter-spacing: 0.3em;
+      color: #00d4ff; text-transform: uppercase; margin-bottom: 0.5rem;
+    }
+    .setup-card {
+      background: #ffffff08; border: 1px solid #00d4ff22;
+      border-radius: 4px; padding: 0.7rem 1.2rem; width: min(700px, 96vw);
+      backdrop-filter: blur(10px);
+    }
+    .setup-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem 1.5rem;
+    }
+    .setup-row {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 0.5rem;
+    }
+    .setup-label { font-size: 0.85rem; letter-spacing: 0.2em; color: #88aacc; }
+    .setup-control { display: flex; gap: 0.5rem; align-items: center; }
+    .toggle-btn {
+      background: #ffffff10; border: 1px solid #00d4ff44;
+      color: #cde; padding: 0.35rem 0.8rem; cursor: pointer;
+      font-family: inherit; font-size: 0.8rem; letter-spacing: 0.1em;
+      transition: all 0.2s; border-radius: 2px;
+    }
+    .toggle-btn.active { background: #00d4ff33; border-color: #00d4ff; color: #00d4ff; }
+    .toggle-btn:hover { background: #00d4ff22; }
+    select.setup-select {
+      background: #ffffff10; border: 1px solid #00d4ff44;
+      color: #cde; padding: 0.35rem 0.6rem; font-family: inherit;
+      font-size: 0.8rem; border-radius: 2px; cursor: pointer;
+    }
+    select.setup-select option { background: #0d1f3c; }
+    .setup-hint {
+      font-size: 0.72rem; color: #556; margin-top: 0.8rem;
+      line-height: 1.6; letter-spacing: 0.05em; text-align: center;
+    }
+    .start-btn {
+      width: 100%; padding: 0.7rem; margin-top: 0.8rem;
+      background: linear-gradient(135deg, #0066ff22, #7c3aed22);
+      border: 1px solid #7c3aed; color: #c4b5fd;
+      font-family: inherit; font-size: 1rem; letter-spacing: 0.3em;
+      text-transform: uppercase; cursor: pointer;
+      transition: all 0.3s; border-radius: 2px;
+    }
+    .start-btn:hover {
+      background: linear-gradient(135deg, #0066ff44, #7c3aed44);
+      box-shadow: 0 0 25px #7c3aed55;
+    }
+
+    /* ── HUD ── */
+    #hud {
+      position: fixed; inset: 0; z-index: 100;
+      pointer-events: none; display: none;
+    }
+    #hud.visible { display: block; }
+    .hud-top {
+      position: absolute; top: 0; left: 0; right: 0;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 12px 18px; gap: 10px;
+    }
+    .hud-panel {
+      background: #000d1a99; border: 1px solid #00d4ff44;
+      backdrop-filter: blur(6px); padding: 5px 10px; border-radius: 3px;
+      font-family: 'Courier New', monospace; color: #00d4ff;
+      font-size: clamp(0.55rem, 1.5vw, 0.7rem); line-height: 1.5;
+    }
+    .hud-panel .val { color: #fff; font-weight: bold; }
+    .hud-center {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .crosshair {
+      width: 30px; height: 30px; position: relative;
+    }
+    .crosshair::before, .crosshair::after {
+      content: ''; position: absolute; background: #00d4ffaa;
+    }
+    .crosshair::before { width: 100%; height: 1px; top: 50%; transform: translateY(-50%); }
+    .crosshair::after  { height: 100%; width: 1px; left: 50%; transform: translateX(-50%); }
+    .hud-ring-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #00d4ff; position: absolute;
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+    }
+    .hud-bottom {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      display: flex; justify-content: center; gap: 20px;
+      padding: 10px 18px; align-items: flex-end;
+    }
+    #levelBanner {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 200; font-family: 'Courier New', monospace;
+      font-size: clamp(1.5rem, 5vw, 2.5rem);
+      color: #00d4ff; letter-spacing: 0.3em;
+      text-shadow: 0 0 30px #00d4ff;
+      opacity: 0; transition: opacity 0.5s;
+      pointer-events: none; text-align: center;
+    }
+    #levelBanner.show { opacity: 1; }
+    #gameOverScreen {
+      background: #000510ee;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    #gameOverScreen.visible { display: flex; }
+    .go-title {
+      font-size: clamp(2rem, 7vw, 3.5rem); color: #00d4ff;
+      letter-spacing: 0.3em; margin-bottom: 1rem;
+    }
+    .go-score { font-size: 1.2rem; color: #aac; margin-bottom: 2rem; }
+    .go-score span { color: #fff; font-size: 1.6rem; }
+    .go-btn {
+      padding: 0.8rem 2rem; background: transparent;
+      border: 1px solid #00d4ff; color: #00d4ff;
+      font-family: inherit; font-size: 0.9rem;
+      letter-spacing: 0.2em; cursor: pointer; transition: all 0.3s;
+      margin: 0.4rem; text-transform: uppercase;
+    }
+    .go-btn:hover { background: #00d4ff22; }
+  </style>
+</head>
+<body style="background:#000; overflow:hidden;">
+
+<!-- ROTATE PROMPT -->
+<div id="rotatePrompt">
+  <div class="r-icon">📱</div>
+  <p>ROTATE YOUR DEVICE<br>TO LANDSCAPE</p>
+</div>
+
+<!-- GYRO PERMISSION (iOS) -->
+<div id="gyroPrompt">
+  <p>✈ <strong>SKYRIDER VR</strong> uses your phone's gyroscope to steer the plane.<br><br>Tap below to enable motion controls.</p>
+  <button id="gyroAllowBtn">ENABLE CONTROLS</button>
+</div>
+
+<!-- ════════════════════════════════════════
+     FLASH SCREEN
+════════════════════════════════════════ -->
+<div class="overlay" id="flashScreen">
+  <div class="flash-stars" id="starsContainer"></div>
+  <div class="flash-logo">SKYRIDER VR</div>
+  <div class="flash-subtitle">immersive flight simulator</div>
+  <div class="flash-divider"></div>
+  <div class="flash-credits">
+    Developed by <span>Your Name</span><br>
+    CMPT 461 – Immersive Computing<br>
+    Trinity Western University · 2026<br>
+    <span>A-Frame WebVR</span>
+  </div>
+  <div class="flash-plane">✈</div>
+  <button class="flash-btn" id="flashNextBtn">ENTER COCKPIT →</button>
+</div>
+
+<!-- ════════════════════════════════════════
+     SETUP SCREEN
+════════════════════════════════════════ -->
+<div class="overlay hidden" id="setupScreen">
+  <div class="setup-title">⚙ MISSION SETUP</div>
+  <div class="setup-card">
+    <div class="setup-grid">
+      <div class="setup-row">
+        <span class="setup-label">MUSIC</span>
+        <div class="setup-control">
+          <button class="toggle-btn active" id="musicOn" onclick="setMusic(true)">ON</button>
+          <button class="toggle-btn" id="musicOff" onclick="setMusic(false)">OFF</button>
+        </div>
+      </div>
+      <div class="setup-row">
+        <span class="setup-label">SOUND FX</span>
+        <div class="setup-control">
+          <button class="toggle-btn active" id="sfxOn" onclick="setSFX(true)">ON</button>
+          <button class="toggle-btn" id="sfxOff" onclick="setSFX(false)">OFF</button>
+        </div>
+      </div>
+      <div class="setup-row">
+        <span class="setup-label">LEVEL</span>
+        <div class="setup-control">
+          <select class="setup-select" id="startLevel">
+            <option value="1">LEVEL 1</option>
+            <option value="2">LEVEL 2</option>
+          </select>
+        </div>
+      </div>
+      <div class="setup-row">
+        <span class="setup-label">SPEED</span>
+        <div class="setup-control">
+          <button class="toggle-btn active" id="spd1" onclick="setSpeed(1)">NORMAL</button>
+          <button class="toggle-btn" id="spd2" onclick="setSpeed(1.6)">FAST</button>
+        </div>
+      </div>
+      <div class="setup-row">
+        <span class="setup-label">VR MODE</span>
+        <div class="setup-control">
+          <button class="toggle-btn active" id="vrOff" onclick="setVR(false)">MONO</button>
+          <button class="toggle-btn" id="vrOn" onclick="setVR(true)">STEREO</button>
+        </div>
+      </div>
+      <div class="setup-row" style="align-items:center; color:#556; font-size:0.68rem; letter-spacing:0.05em; line-height:1.5;">
+        Tilt phone to steer · Fly through rings to score
+      </div>
+    </div>
+    <button class="start-btn" id="startGameBtn">▶ START MISSION</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     HUD
+════════════════════════════════════════ -->
+<div id="hud">
+  <div class="hud-top">
+    <div class="hud-panel">
+      SCORE<br><span class="val" id="hudScore">0</span>
+    </div>
+    <div class="hud-panel" style="text-align:center;">
+      LEVEL <span class="val" id="hudLevel">1</span><br>
+      <span style="font-size:0.7em;color:#556;">RINGS LEFT</span> <span class="val" id="hudRings">-</span>
+    </div>
+    <div class="hud-panel" style="text-align:right;">
+      ALT <span class="val" id="hudAlt">--</span>m<br>
+      SPD <span class="val" id="hudSpd">--</span>
+    </div>
+  </div>
+  <div class="hud-center">
+    <div class="crosshair"><div class="hud-ring-dot"></div></div>
+  </div>
+</div>
+
+<div id="levelBanner"></div>
+<div class="overlay hidden" id="gameOverScreen">
+  <div class="go-title">MISSION COMPLETE</div>
+  <div class="go-score">FINAL SCORE: <span id="finalScore">0</span></div>
+  <button class="go-btn" onclick="restartGame()">↺ REPLAY</button>
+  <button class="go-btn" onclick="goSetup()">⚙ SETUP</button>
+</div>
+
+<!-- ════════════════════════════════════════
+     A-FRAME SCENE
+════════════════════════════════════════ -->
+<a-scene
+  id="aScene"
+  vr-mode-ui="enabled: true"
+  renderer="antialias: true; colorManagement: true;"
+  style="display:none;">
+
+  <!-- ── ASSETS ── -->
+  <a-assets>
+    <!-- Procedural canvas textures injected by JS -->
+    <canvas id="texCity" width="512" height="512"></canvas>
+    <canvas id="texTower" width="256" height="512"></canvas>
+    <canvas id="texTwin" width="256" height="512"></canvas>
+    <canvas id="texRoad" width="512" height="512"></canvas>
+    <canvas id="texSky" width="512" height="512"></canvas>
+    <canvas id="texCockpit" width="512" height="256"></canvas>
+    <canvas id="texRing" width="128" height="128"></canvas>
+    <canvas id="texGround" width="512" height="512"></canvas>
+  </a-assets>
+
+  <!-- ── SKY ── -->
+  <a-sky id="sky" src="#texSky"></a-sky>
+
+  <!-- ── GROUND ── -->
+  <a-plane id="ground"
+    src="#texGround"
+    rotation="-90 0 0"
+    width="1200" height="1200"
+    repeat="20 20"
+    position="0 -2 0">
+  </a-plane>
+
+  <!-- ── CITY GROUP (populated by JS) ── -->
+  <a-entity id="cityGroup"></a-entity>
+
+  <!-- ── RINGS GROUP ── -->
+  <a-entity id="ringsGroup"></a-entity>
+
+  <!-- ── COCKPIT (static in camera) ── -->
+  <a-camera id="playerCam"
+    position="0 60 0"
+    look-controls="enabled: false"
+    wasd-controls="enabled: false"
+    fov="80">
+
+    <!-- Cockpit frame overlay -->
+    <a-entity id="cockpitFrame" position="0 -0.38 -1.2">
+      <a-plane src="#texCockpit" width="2.4" height="0.55"
+        material="transparent:true; opacity:0.92" rotation="15 0 0"></a-plane>
+    </a-entity>
+
+    <!-- Cursor for gaze -->
+    <a-cursor
+      color="#00d4ff"
+      fuse="false"
+      raycaster="objects: .ring-target"
+      material="color: #00d4ff; shader: flat"
+      geometry="primitive: ring; radiusInner: 0.008; radiusOuter: 0.015">
+    </a-cursor>
+  </a-camera>
+
+  <!-- ── AUDIO ── -->
+  <a-entity id="bgMusic"
+    sound="src: url(https://cdn.pixabay.com/audio/2022/08/22/audio_d1718ab41b.mp3);
+           loop: true; autoplay: false; volume: 0.3; positional: false">
+  </a-entity>
+  <a-entity id="sfxRing"
+    sound="src: url(https://cdn.pixabay.com/audio/2022/03/15/audio_1a609a6d85.mp3);
+           loop: false; autoplay: false; volume: 0.8; positional: false">
+  </a-entity>
+</a-scene>
+
+<!-- ════════════════════════════════════════
+     GAME LOGIC
+════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ── Config ── */
+const CFG = {
+  musicOn: true, sfxOn: true, vrMode: false,
+  startLevel: 1, speedMult: 1
+};
+
+/* ── Game state ── */
+let GS = {
+  score: 0, level: 1, active: false,
+  rings: [], ringsLeft: 0,
+  yaw: 0, pitch: 0,          // head orientation
+  posX: 0, posY: 60, posZ: 0,
+  velX: 0, velY: 0, velZ: 0,
+  baseSpeed: 14,
+  frame: 0
+};
+
+/* ══════════════════════════════════
+   TEXTURE GENERATORS
+══════════════════════════════════ */
+function drawTextures() {
+  // Ground (city grid)
+  const gnd = document.getElementById('texGround').getContext('2d');
+  gnd.fillStyle = '#2a3a2a'; gnd.fillRect(0,0,512,512);
+  gnd.strokeStyle = '#1a2a1a'; gnd.lineWidth = 2;
+  for(let i=0;i<512;i+=32){ gnd.beginPath();gnd.moveTo(i,0);gnd.lineTo(i,512);gnd.stroke(); }
+  for(let j=0;j<512;j+=32){ gnd.beginPath();gnd.moveTo(0,j);gnd.lineTo(512,j);gnd.stroke(); }
+  // Roads
+  gnd.fillStyle = '#333'; 
+  [64,192,320,448].forEach(x=>gnd.fillRect(x-8,0,16,512));
+  [64,192,320,448].forEach(y=>gnd.fillRect(0,y-8,512,16));
+  // Road markings
+  gnd.fillStyle = '#fffc00'; gnd.setLineDash([20,20]);
+  gnd.lineWidth=1; gnd.strokeStyle='#fffc0066';
+  [64,192,320,448].forEach(x=>{gnd.beginPath();gnd.moveTo(x,0);gnd.lineTo(x,512);gnd.stroke();});
+
+  // City building texture
+  const ctx = document.getElementById('texCity').getContext('2d');
+  ctx.fillStyle = '#334455'; ctx.fillRect(0,0,512,512);
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const x=c*64+4,y=r*64+4,w=56,h=56;
+    const shade = 40+Math.random()*30;
+    ctx.fillStyle=`rgb(${shade+20},${shade+30},${shade+50})`;
+    ctx.fillRect(x,y,w,h);
+    ctx.fillStyle='#88aacc22';
+    for(let wy=y+6;wy<y+h-6;wy+=12) for(let wx=x+6;wx<x+w-6;wx+=10){
+      ctx.fillStyle = Math.random()>0.3?'#ffff8833':'#44668833';
+      ctx.fillRect(wx,wy,7,8);
+    }
+  }
+
+  // Twin tower texture (glass facade)
+  const tw = document.getElementById('texTwin').getContext('2d');
+  tw.fillStyle = '#1a3a5c'; tw.fillRect(0,0,256,512);
+  for(let r=0;r<40;r++) for(let c=0;c<8;c++){
+    tw.fillStyle = (r+c)%3===0 ? '#88ccff55' : '#ffffff15';
+    tw.fillRect(c*30+4,r*12+4,24,8);
+  }
+  tw.strokeStyle='#00d4ff33'; tw.lineWidth=1;
+  for(let i=0;i<256;i+=30){tw.beginPath();tw.moveTo(i,0);tw.lineTo(i,512);tw.stroke();}
+  for(let j=0;j<512;j+=12){tw.beginPath();tw.moveTo(0,j);tw.lineTo(256,j);tw.stroke();}
+
+  // Generic tower texture
+  const t = document.getElementById('texTower').getContext('2d');
+  t.fillStyle='#2d3540';t.fillRect(0,0,256,512);
+  for(let r=0;r<30;r++) for(let c=0;c<6;c++){
+    t.fillStyle=Math.random()>.4?'#ffd70044':'#44668855';
+    t.fillRect(c*40+5,r*16+5,32,10);
+  }
+  t.strokeStyle='#ffffff11';t.lineWidth=1;
+  for(let i=0;i<256;i+=40){t.beginPath();t.moveTo(i,0);t.lineTo(i,512);t.stroke();}
+
+  // Cockpit HUD strip
+  const ck = document.getElementById('texCockpit').getContext('2d');
+  const grad = ck.createLinearGradient(0,0,0,256);
+  grad.addColorStop(0,'#001020cc'); grad.addColorStop(1,'#00000000');
+  ck.fillStyle=grad; ck.fillRect(0,0,512,256);
+  ck.strokeStyle='#00d4ff66'; ck.lineWidth=1;
+  ck.strokeRect(2,2,508,252);
+  // Artificial horizon lines
+  ck.strokeStyle='#00d4ff44'; ck.lineWidth=1;
+  for(let i=0;i<6;i++){
+    const y=30+i*38;
+    ck.beginPath();ck.moveTo(60,y);ck.lineTo(180,y);ck.stroke();
+    ck.beginPath();ck.moveTo(330,y);ck.lineTo(450,y);ck.stroke();
+  }
+  ck.fillStyle='#00d4ffaa';ck.font='bold 18px Courier New';
+  ck.fillText('SKYRIDER VR',190,40);
+  ck.fillStyle='#00d4ff66';ck.font='11px Courier New';
+  ck.fillText('ALTITUDE',30,80);ck.fillText('SPEED',410,80);
+  ck.fillText('RINGS',230,80);
+
+  // Sky gradient
+  const sk = document.getElementById('texSky').getContext('2d');
+  const sg = sk.createLinearGradient(0,0,0,512);
+  sg.addColorStop(0,'#000d1a'); sg.addColorStop(0.4,'#0a2040');
+  sg.addColorStop(0.7,'#1a4060'); sg.addColorStop(1,'#d4603060');
+  sk.fillStyle=sg; sk.fillRect(0,0,512,512);
+  // Stars
+  for(let i=0;i<200;i++){
+    sk.fillStyle=`rgba(255,255,255,${0.3+Math.random()*0.7})`;
+    sk.beginPath();
+    sk.arc(Math.random()*512,Math.random()*300,Math.random()*1.5,0,Math.PI*2);
+    sk.fill();
+  }
+}
+
+/* ══════════════════════════════════
+   CITY BUILDER
+══════════════════════════════════ */
+function buildCity() {
+  const group = document.getElementById('cityGroup');
+  group.innerHTML = '';
+
+  const defs = [
+    // Twin towers (iconic)
+    {x:-60,z:-80,  w:22,h:180,d:22, tex:'texTwin',  twin:true},
+    {x:-35,z:-80,  w:22,h:200,d:22, tex:'texTwin',  twin:true},
+    // Surrounding skyscrapers
+    {x:80, z:-60,  w:28,h:130,d:28, tex:'texTower'},
+    {x:-90,z:40,   w:24,h:110,d:24, tex:'texTower'},
+    {x:50, z:70,   w:30,h:95, d:30, tex:'texTower'},
+    {x:-40,z:100,  w:20,h:80, d:20, tex:'texCity'},
+    {x:100,z:20,   w:18,h:70, d:18, tex:'texCity'},
+    {x:-110,z:-30, w:22,h:90, d:22, tex:'texTower'},
+    {x:20, z:-120, w:26,h:115,d:26, tex:'texCity'},
+    {x:-70,z:150,  w:20,h:60, d:20, tex:'texCity'},
+    {x:130,z:-80,  w:18,h:75, d:18, tex:'texCity'},
+    {x:60, z:130,  w:24,h:85, d:24, tex:'texTower'},
+    {x:-130,z:80,  w:20,h:65, d:20, tex:'texCity'},
+    {x:160,z:60,   w:22,h:55, d:22, tex:'texCity'},
+    {x:-20,z:-150, w:18,h:100,d:18, tex:'texTower'},
+    {x:90, z:-140, w:20,h:70, d:20, tex:'texCity'},
+    // Medium buildings
+    {x:-200,z:-50, w:30,h:40, d:30, tex:'texCity'},
+    {x:200, z:-50, w:30,h:45, d:30, tex:'texCity'},
+    {x:-200,z:100, w:28,h:35, d:28, tex:'texCity'},
+    {x:200, z:100, w:28,h:38, d:28, tex:'texCity'},
+    {x:0,   z:-200,w:32,h:50, d:32, tex:'texTower'},
+    {x:0,   z:200, w:32,h:42, d:32, tex:'texCity'},
+    {x:-150,z:-150,w:24,h:30, d:24, tex:'texCity'},
+    {x:150, z:-150,w:24,h:33, d:24, tex:'texCity'},
+    {x:-150,z:150, w:24,h:28, d:24, tex:'texCity'},
+    {x:150, z:150, w:24,h:31, d:24, tex:'texCity'},
+  ];
+
+  defs.forEach(b => {
+    const el = document.createElement('a-box');
+    el.setAttribute('position', `${b.x} ${b.h/2 - 2} ${b.z}`);
+    el.setAttribute('width',  b.w);
+    el.setAttribute('height', b.h);
+    el.setAttribute('depth',  b.d);
+    el.setAttribute('src', `#${b.tex}`);
+    el.setAttribute('shadow', 'cast:true');
+    if(b.twin) {
+      // Antenna on twin towers
+      const ant = document.createElement('a-cylinder');
+      ant.setAttribute('position', `${b.x} ${b.h + 15} ${b.z}`);
+      ant.setAttribute('radius', '1'); ant.setAttribute('height','30');
+      ant.setAttribute('color','#aabbcc');
+      group.appendChild(ant);
+    }
+    group.appendChild(el);
+  });
+}
+
+/* ══════════════════════════════════
+   RING BUILDER
+══════════════════════════════════ */
+const RING_PATHS = {
+  1: [  // Level 1: 8 rings, spread out, easier altitude
+    {x:0,   y:55, z:-50},
+    {x:40,  y:60, z:-100},
+    {x:-50, y:65, z:-150},
+    {x:20,  y:70, z:-200},
+    {x:-30, y:60, z:-250},
+    {x:60,  y:55, z:-300},
+    {x:-20, y:65, z:-350},
+    {x:10,  y:60, z:-400},
+  ],
+  2: [  // Level 2: 12 rings, tighter, varied altitude
+    {x:0,   y:55, z:-50},
+    {x:50,  y:70, z:-90},
+    {x:-60, y:50, z:-130},
+    {x:30,  y:80, z:-170},
+    {x:-40, y:55, z:-210},
+    {x:70,  y:65, z:-250},
+    {x:-20, y:75, z:-285},
+    {x:40,  y:50, z:-320},
+    {x:-70, y:70, z:-355},
+    {x:10,  y:60, z:-390},
+    {x:-30, y:80, z:-425},
+    {x:50,  y:55, z:-460},
+  ]
+};
+
+function buildRings(level) {
+  const group = document.getElementById('ringsGroup');
+  group.innerHTML = '';
+  GS.rings = [];
+
+  const path = RING_PATHS[level] || RING_PATHS[1];
+  path.forEach((p, i) => {
+    const wrapper = document.createElement('a-entity');
+    wrapper.setAttribute('position', `${p.x} ${p.y} ${p.z}`);
+    wrapper.setAttribute('class', 'ring-wrapper');
+    wrapper.dataset.idx = i;
+
+    // Outer ring (torus)
+    const torus = document.createElement('a-torus');
+    torus.setAttribute('radius', '12');
+    torus.setAttribute('radius-tubular', '0.8');
+    torus.setAttribute('color', '#00d4ff');
+    torus.setAttribute('material', 'emissive:#00d4ff; emissiveIntensity:0.6; transparent:true; opacity:0.9');
+    torus.setAttribute('segments-tubular', '20');
+    torus.setAttribute('class', 'ring-target');
+    torus.dataset.ringIdx = i;
+
+    // Inner glow ring
+    const inner = document.createElement('a-torus');
+    inner.setAttribute('radius', '10');
+    inner.setAttribute('radius-tubular', '0.3');
+    inner.setAttribute('color', '#ffffff');
+    inner.setAttribute('material', 'emissive:#88eeff; emissiveIntensity:1; transparent:true; opacity:0.5');
+    inner.setAttribute('segments-tubular', '20');
+
+    // Number label
+    const txt = document.createElement('a-text');
+    txt.setAttribute('value', `${i+1}`);
+    txt.setAttribute('align', 'center');
+    txt.setAttribute('color', '#ffffff');
+    txt.setAttribute('scale', '8 8 8');
+    txt.setAttribute('position', '0 15 0');
+
+    // Point light inside ring
+    const light = document.createElement('a-light');
+    light.setAttribute('type', 'point');
+    light.setAttribute('color', '#00d4ff');
+    light.setAttribute('intensity', '0.8');
+    light.setAttribute('distance', '30');
+
+    wrapper.appendChild(torus);
+    wrapper.appendChild(inner);
+    wrapper.appendChild(txt);
+    wrapper.appendChild(light);
+    group.appendChild(wrapper);
+
+    GS.rings.push({
+      el: wrapper, x: p.x, y: p.y, z: p.z,
+      collected: false, radius: 12
+    });
+  });
+
+  GS.ringsLeft = path.length;
+  updateHUD();
+}
+
+/* ══════════════════════════════════
+   FLIGHT PHYSICS + GAME LOOP
+══════════════════════════════════ */
+let lastTime = 0;
+let deviceAlpha = 0, deviceBeta = 0, deviceGamma = 0;
+
+function initDeviceOrientation() {
+  if(typeof DeviceOrientationEvent !== 'undefined' &&
+     typeof DeviceOrientationEvent.requestPermission === 'function') {
+    // iOS 13+ — must be triggered by a user gesture, show our prompt
+    document.getElementById('gyroPrompt').classList.add('show');
+    document.getElementById('gyroAllowBtn').onclick = () => {
+      DeviceOrientationEvent.requestPermission().then(state => {
+        document.getElementById('gyroPrompt').classList.remove('show');
+        if(state === 'granted') addOrientationListener();
+      }).catch(e => {
+        document.getElementById('gyroPrompt').classList.remove('show');
+        console.error(e);
+      });
+    };
+  } else {
+    // Android / desktop — no permission needed
+    addOrientationListener();
+  }
+}
+
+function addOrientationListener() {
+  window.addEventListener('deviceorientation', e => {
+    deviceAlpha = e.alpha || 0;
+    deviceBeta  = e.beta  || 0;
+    deviceGamma = e.gamma || 0;
+  }, true);
+}
+
+// Keyboard fallback (desktop testing)
+const keys = {};
+window.addEventListener('keydown', e => keys[e.key] = true);
+window.addEventListener('keyup',   e => keys[e.key] = false);
+
+function tick(ts) {
+  if(!GS.active) return;
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+
+  // ── Determine pitch/yaw from device or keyboard ──
+  let targetPitch = 0, targetYaw = 0;
+  const anyKey = Object.values(keys).some(v => v);
+
+  if(anyKey) {
+    if(keys['ArrowUp']    || keys['w']) targetPitch = -0.4;
+    if(keys['ArrowDown']  || keys['s']) targetPitch =  0.4;
+    if(keys['ArrowLeft']  || keys['a']) targetYaw   -= 0.5;
+    if(keys['ArrowRight'] || keys['d']) targetYaw   += 0.5;
+  } else {
+    // Landscape iOS/Android gyro:
+    // Phone held landscape (home button right):
+    //   beta  → physical left/right tilt → controls yaw
+    //   gamma → physical up/down tilt    → controls pitch
+    // Neutral hold ≈ beta=0, gamma=-45 (screen tilted up ~45°)
+    const rawPitch = deviceGamma + 45;   // 0 = level, positive = nose down
+    const rawYaw   = deviceBeta;         // 0 = level, tilt left = negative
+    targetPitch = clamp(rawPitch / 35, -1, 1) * 0.55;
+    targetYaw   = clamp(rawYaw   / 40, -1, 1) * 0.55;
+  }
+
+  // Smooth
+  GS.pitch = lerp(GS.pitch, targetPitch, dt * 4);
+  GS.yaw   = lerp(GS.yaw,   targetYaw,   dt * 4);
+
+  // ── Velocity ──
+  const speed = GS.baseSpeed * CFG.speedMult;
+  const fwdX = Math.sin(GS.yaw)  * speed;
+  const fwdZ = -Math.cos(GS.yaw) * speed;
+  const upV  = -GS.pitch * speed * 0.8;
+
+  GS.velX = lerp(GS.velX, fwdX, dt * 3);
+  GS.velZ = lerp(GS.velZ, fwdZ, dt * 3);
+  GS.velY = lerp(GS.velY, upV,  dt * 3);
+
+  // ── Position ──
+  GS.posX += GS.velX * dt;
+  GS.posY += GS.velY * dt;
+  GS.posZ += GS.velZ * dt;
+
+  // Altitude clamp
+  if(GS.posY < 30)  { GS.posY = 30;  GS.velY = Math.max(0, GS.velY); }
+  if(GS.posY > 160) { GS.posY = 160; GS.velY = Math.min(0, GS.velY); }
+
+  // ── Apply to camera via object3D (bypasses look-controls) ──
+  const cam = document.getElementById('playerCam');
+  const obj = cam.object3D;
+  obj.position.set(GS.posX, GS.posY, GS.posZ);
+  obj.rotation.order = 'YXZ';
+  obj.rotation.y = -GS.yaw;
+  obj.rotation.x = GS.pitch * 0.5;
+  obj.rotation.z = -GS.yaw * 0.15; // subtle bank roll
+
+  // ── Ring collisions ──
+  checkRingCollisions();
+
+  GS.frame++;
+  if(GS.frame % 10 === 0) updateHUD();
+
+  requestAnimationFrame(tick);
+}
+
+function checkRingCollisions() {
+  GS.rings.forEach(r => {
+    if(r.collected) return;
+    const dx = GS.posX - r.x;
+    const dy = GS.posY - r.y;
+    const dz = GS.posZ - r.z;
+    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+    if(dist < r.radius * 0.85) {
+      collectRing(r);
+    }
+  });
+}
+
+function collectRing(r) {
+  r.collected = true;
+  GS.score += 100 * GS.level;
+  GS.ringsLeft--;
+
+  // Visual feedback
+  r.el.setAttribute('visible', 'false');
+
+  // Sound
+  if(CFG.sfxOn) {
+    try { document.getElementById('sfxRing').components.sound.playSound(); } catch(e){}
+  }
+
+  if(GS.ringsLeft <= 0) {
+    // Level complete
+    if(GS.level === 1) {
+      nextLevel();
+    } else {
+      endGame();
+    }
+  }
+  updateHUD();
+}
+
+function nextLevel() {
+  GS.active = false;
+  GS.level = 2;
+  showBanner('LEVEL 2\nCHALLENGE', () => {
+    buildRings(2);
+    GS.posX = 0; GS.posY = 60; GS.posZ = 0;
+    GS.velX = 0; GS.velY = 0; GS.velZ = 0;
+    GS.yaw = 0; GS.pitch = 0;
+    GS.active = true;
+    updateHUD();
+    requestAnimationFrame(ts => { lastTime = ts; tick(ts); });
+  });
+}
+
+function endGame() {
+  GS.active = false;
+  document.getElementById('finalScore').textContent = GS.score;
+  document.getElementById('hud').classList.remove('visible');
+  document.getElementById('gameOverScreen').classList.remove('hidden');
+  document.getElementById('gameOverScreen').classList.add('visible');
+  document.getElementById('aScene').style.display = 'none';
+}
+
+function showBanner(text, cb) {
+  const b = document.getElementById('levelBanner');
+  b.textContent = text.split('\n')[0];
+  if(text.includes('\n')) {
+    const sub = document.createElement('div');
+    sub.style.fontSize='0.5em'; sub.style.marginTop='0.3em';
+    sub.textContent = text.split('\n')[1];
+    b.appendChild(sub);
+  }
+  b.classList.add('show');
+  setTimeout(() => {
+    b.classList.remove('show');
+    b.innerHTML = '';
+    if(cb) cb();
+  }, 2500);
+}
+
+function updateHUD() {
+  document.getElementById('hudScore').textContent = GS.score;
+  document.getElementById('hudLevel').textContent = GS.level;
+  document.getElementById('hudRings').textContent = GS.ringsLeft;
+  document.getElementById('hudAlt').textContent   = Math.round(GS.posY);
+  document.getElementById('hudSpd').textContent   = Math.round(
+    Math.sqrt(GS.velX*GS.velX + GS.velZ*GS.velZ)
+  );
+}
+
+/* ══════════════════════════════════
+   SETUP CONTROLS
+══════════════════════════════════ */
+function setMusic(on) {
+  CFG.musicOn = on;
+  document.getElementById('musicOn').classList.toggle('active', on);
+  document.getElementById('musicOff').classList.toggle('active', !on);
+}
+function setSFX(on) {
+  CFG.sfxOn = on;
+  document.getElementById('sfxOn').classList.toggle('active', on);
+  document.getElementById('sfxOff').classList.toggle('active', !on);
+}
+function setSpeed(s) {
+  CFG.speedMult = s;
+  document.getElementById('spd1').classList.toggle('active', s===1);
+  document.getElementById('spd2').classList.toggle('active', s!==1);
+}
+function setVR(on) {
+  CFG.vrMode = on;
+  document.getElementById('vrOff').classList.toggle('active', !on);
+  document.getElementById('vrOn').classList.toggle('active', on);
+}
+
+/* ══════════════════════════════════
+   STAR GENERATOR (flash screen)
+══════════════════════════════════ */
+function generateStars() {
+  const c = document.getElementById('starsContainer');
+  for(let i=0;i<120;i++){
+    const s = document.createElement('div');
+    s.className = 'star';
+    const sz = Math.random()*2+0.5;
+    s.style.cssText = `width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;
+      animation-delay:${Math.random()*2}s; animation-duration:${1+Math.random()*2}s;`;
+    c.appendChild(s);
+  }
+}
+
+/* ══════════════════════════════════
+   FLOW CONTROL
+══════════════════════════════════ */
+document.getElementById('flashNextBtn').addEventListener('click', () => {
+  document.getElementById('flashScreen').classList.add('hidden');
+  document.getElementById('setupScreen').classList.remove('hidden');
+});
+
+document.getElementById('startGameBtn').addEventListener('click', startGame);
+
+function startGame() {
+  CFG.startLevel = parseInt(document.getElementById('startLevel').value);
+
+  document.getElementById('setupScreen').classList.add('hidden');
+  document.getElementById('aScene').style.display = 'block';
+  document.getElementById('hud').classList.add('visible');
+
+  // Init scene
+  GS = {
+    score: 0, level: CFG.startLevel, active: false,
+    rings: [], ringsLeft: 0,
+    yaw: 0, pitch: 0,
+    posX: 0, posY: 65, posZ: 80,
+    velX: 0, velY: 0, velZ: 0,
+    baseSpeed: 14, frame: 0
+  };
+
+  buildCity();
+  buildRings(CFG.startLevel);
+  initDeviceOrientation();
+
+  // Music
+  if(CFG.musicOn) {
+    setTimeout(() => {
+      try { document.getElementById('bgMusic').components.sound.playSound(); } catch(e){}
+    }, 1000);
+  }
+
+  // VR mode
+  if(CFG.vrMode) {
+    document.getElementById('aScene').enterVR();
+  }
+
+  const lvlName = CFG.startLevel === 1 ? 'LEVEL 1\nTRAINING RUN' : 'LEVEL 2\nCHALLENGE';
+  showBanner(lvlName, () => {
+    GS.active = true;
+    updateHUD();
+    requestAnimationFrame(ts => { lastTime = ts; tick(ts); });
+  });
+}
+
+function restartGame() {
+  document.getElementById('gameOverScreen').classList.remove('visible');
+  document.getElementById('gameOverScreen').classList.add('hidden');
+  document.getElementById('aScene').style.display = 'block';
+  document.getElementById('hud').classList.add('visible');
+  startGame();
+}
+
+function goSetup() {
+  document.getElementById('gameOverScreen').classList.remove('visible');
+  document.getElementById('gameOverScreen').classList.add('hidden');
+  document.getElementById('aScene').style.display = 'none';
+  document.getElementById('hud').classList.remove('visible');
+  document.getElementById('setupScreen').classList.remove('hidden');
+}
+
+/* ── Util ── */
+function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+/* ── Init ── */
+generateStars();
+document.addEventListener('DOMContentLoaded', () => {
+  // Wait for A-Frame to be ready before drawing textures
+  const scene = document.getElementById('aScene');
+  scene.addEventListener('loaded', drawTextures);
+  // Also draw early for non-VR path
+  setTimeout(drawTextures, 500);
+
+  // Add ambient + directional lighting to scene
+  const ambient = document.createElement('a-light');
+  ambient.setAttribute('type','ambient');
+  ambient.setAttribute('color','#334466');
+  ambient.setAttribute('intensity','0.6');
+  scene.appendChild(ambient);
+
+  const sun = document.createElement('a-light');
+  sun.setAttribute('type','directional');
+  sun.setAttribute('color','#ffddaa');
+  sun.setAttribute('intensity','0.8');
+  sun.setAttribute('position','100 200 50');
+  scene.appendChild(sun);
+});
+</script>
+</body>
+</html>
