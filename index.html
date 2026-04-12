@@ -771,11 +771,11 @@ function tick(ts) {
   const speed = GS.baseSpeed * CFG.speedMult;
   const fwdX = Math.sin(GS.yaw)  * speed;
   const fwdZ = -Math.cos(GS.yaw) * speed;
-  const upV  = -GS.pitch * speed * 0.8;
+  const upV  = GS.pitch * speed * 1.5;  // positive pitch = climb
 
   GS.velX = lerp(GS.velX, fwdX, dt * 3);
   GS.velZ = lerp(GS.velZ, fwdZ, dt * 3);
-  GS.velY = lerp(GS.velY, upV,  dt * 3);
+  GS.velY = lerp(GS.velY, upV,  dt * 4); // faster vertical response
 
   // ── Position ──
   GS.posX += GS.velX * dt;
