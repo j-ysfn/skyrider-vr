@@ -273,7 +273,7 @@
   <div class="flash-subtitle">immersive flight simulator</div>
   <div class="flash-divider"></div>
   <div class="flash-credits">
-    Developed by <span>Javad Yousefian & Claude</span><br>
+    Developed by <span>Your Name</span><br>
     CMPT 461 – Immersive Computing<br>
     Trinity Western University · 2026<br>
     <span>A-Frame WebVR</span>
@@ -320,10 +320,10 @@
         </div>
       </div>
       <div class="setup-row">
-        <span class="setup-label">VR MODE</span>
+        <span class="setup-label">VR CARDBOARD</span>
         <div class="setup-control">
-          <button class="toggle-btn active" id="vrOff" onclick="setVR(false)">MONO</button>
-          <button class="toggle-btn" id="vrOn" onclick="setVR(true)">STEREO</button>
+          <button class="toggle-btn active" id="vrOff" onclick="setVR(false)">OFF</button>
+          <button class="toggle-btn" id="vrOn" onclick="setVR(true)">ON</button>
         </div>
       </div>
       <div class="setup-row" style="align-items:center; color:#556; font-size:0.68rem; letter-spacing:0.05em; line-height:1.5;">
@@ -795,14 +795,18 @@ function tick(ts) {
   if(GS.posY < 30)  { GS.posY = 30;  GS.velY = Math.max(0, GS.velY); }
   if(GS.posY > 160) { GS.posY = 160; GS.velY = Math.min(0, GS.velY); }
 
-  // ── Apply to camera via object3D (bypasses look-controls) ──
+  // ── Apply to camera via object3D ──
   const cam = document.getElementById('playerCam');
   const obj = cam.object3D;
   obj.position.set(GS.posX, GS.posY, GS.posZ);
-  obj.rotation.order = 'YXZ';
-  obj.rotation.y = -GS.yaw;
-  obj.rotation.x = GS.pitch * 0.5;
-  obj.rotation.z = -GS.yaw * 0.15; // subtle bank roll
+  // In stereo/VR mode, look-controls handles rotation via gyro
+  // In mono mode, we control rotation manually
+  if(!CFG.vrMode) {
+    obj.rotation.order = 'YXZ';
+    obj.rotation.y = -GS.yaw;
+    obj.rotation.x = GS.pitch * 0.5;
+    obj.rotation.z = -GS.yaw * 0.15;
+  }
 
   // ── Ring collisions ──
   checkRingCollisions();
@@ -1027,9 +1031,13 @@ function startGame() {
     }, 800);
   }
 
-  // VR mode
+  // VR mode — enable look-controls for stereo, disable for mono
+  const cam = document.getElementById('playerCam');
   if(CFG.vrMode) {
-    document.getElementById('aScene').enterVR();
+    cam.setAttribute('look-controls', 'enabled: true; reverseMouseDrag: false');
+    setTimeout(() => document.getElementById('aScene').enterVR(), 500);
+  } else {
+    cam.setAttribute('look-controls', 'enabled: false');
   }
 
   const lvlName = CFG.startLevel === 1 ? 'LEVEL 1\nTRAINING RUN' : 'LEVEL 2\nCHALLENGE';
