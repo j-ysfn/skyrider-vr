@@ -427,18 +427,15 @@
     </a-cursor>
   </a-camera>
 
-  <!-- ── AUDIO ── -->
-  <a-entity id="bgMusic"
-    sound="src: url(engine.mp3);
-           loop: true; autoplay: false; volume: 0.4; positional: false">
+  <!-- ── AUDIO (SFX only - engine, ring, crash) ── -->
+  <a-entity id="sfxEngine"
+    sound="src: url(engine.mp3); loop: true; autoplay: false; volume: 0.5; positional: false">
   </a-entity>
   <a-entity id="sfxRing"
-    sound="src: url(ring.mp3);
-           loop: false; autoplay: false; volume: 0.9; positional: false">
+    sound="src: url(ring.mp3); loop: false; autoplay: false; volume: 0.9; positional: false">
   </a-entity>
   <a-entity id="sfxCrash"
-    sound="src: url(crash.mp3);
-           loop: false; autoplay: false; volume: 1.0; positional: false">
+    sound="src: url(crash.mp3); loop: false; autoplay: false; volume: 1.0; positional: false">
   </a-entity>
 </a-scene>
 
@@ -941,7 +938,8 @@ function setMusic(on) {
   document.getElementById('musicOn').classList.toggle('active', on);
   document.getElementById('musicOff').classList.toggle('active', !on);
   const music = document.getElementById('bgMusicEl');
-  music.volume = on ? 0.8 : 0;
+  if(on) { music.volume = 0.8; music.play().catch(()=>{}); }
+  else   { music.pause(); }
 }
 function setSFX(on) {
   CFG.sfxOn = on;
@@ -978,10 +976,7 @@ function generateStars() {
    FLOW CONTROL
 ══════════════════════════════════ */
 document.getElementById('flashNextBtn').addEventListener('click', () => {
-  // Start music loud for menu screens
-  const music = document.getElementById('bgMusicEl');
-  music.volume = 0.8;
-  music.play().catch(()=>{});
+  startMenuMusic();
   document.getElementById('flashScreen').classList.add('hidden');
   document.getElementById('setupScreen').classList.remove('hidden');
 });
