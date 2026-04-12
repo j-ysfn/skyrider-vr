@@ -757,10 +757,10 @@ function tick(ts) {
     //   beta  → physical left/right tilt → controls yaw
     //   gamma → physical up/down tilt    → controls pitch
     // Neutral hold ≈ beta=0, gamma=-45 (screen tilted up ~45°)
-    const rawPitch = deviceGamma + 45;   // 0 = level, positive = nose down
-    const rawYaw   = deviceBeta;         // 0 = level, tilt left = negative
-    targetPitch = clamp(rawPitch / 35, -1, 1) * 0.55;
-    targetYaw   = clamp(rawYaw   / 40, -1, 1) * 0.55;
+    const rawPitch = -(deviceGamma + 45);  // flipped: tilt up = climb
+    const rawYaw   = deviceBeta;
+    targetPitch = clamp(rawPitch / 20, -1, 1) * 0.9;
+    targetYaw   = clamp(rawYaw   / 20, -1, 1) * 0.9;
   }
 
   // Smooth
