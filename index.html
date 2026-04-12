@@ -605,6 +605,11 @@ function buildCity() {
     }
     group.appendChild(el);
   });
+
+  // Store for collision detection
+  GS.buildings = defs.map(b => ({
+    x: b.x, z: b.z, w: b.w/2 + 5, d: b.d/2 + 5, h: b.h
+  }));
 }
 
 /* ══════════════════════════════════
@@ -805,6 +810,7 @@ function tick(ts) {
 }
 
 function checkRingCollisions() {
+  // Ring collection
   GS.rings.forEach(r => {
     if(r.collected) return;
     const dx = GS.posX - r.x;
@@ -815,6 +821,28 @@ function checkRingCollisions() {
       collectRing(r);
     }
   });
+
+  // Building collision — AABB check
+  if(!GS.buildings) return;
+  for(const b of GS.buildings) {
+    if(GS.posY > b.h) continue; // above building, no collision
+    const dx = Math.abs(GS.posX - b.x);
+    const dz = Math.abs(GS.posZ - b.z);
+    if(dx < b.w && dz < b.d) {
+      // Hit a building — bounce back
+      GS.velX *= -0.5;
+      GS.velZ *= -0.5;
+      GS.posX += GS.velX * 0.5;
+      GS.posZ += GS.velZ * 0.5;
+      GS.score = Math.max(0, GS.score - 50); // penalty
+      updateHUD();
+      // Flash HUD red briefly
+      const hud = document.getElementById('hud');
+      hud.style.background = '#ff000022';
+      setTimeout(() => hud.style.background = '', 300);
+      break;
+    }
+  }
 }
 
 function collectRing(r) {
@@ -950,9 +978,9 @@ function startGame() {
   // Init scene
   GS = {
     score: 0, level: CFG.startLevel, active: false,
-    rings: [], ringsLeft: 0,
+    rings: [], ringsLeft: 0, buildings: [],
     yaw: 0, pitch: 0,
-    posX: 0, posY: 65, posZ: 80,
+    posX: 0, posY: 70, posZ: 200,
     velX: 0, velY: 0, velZ: 0,
     baseSpeed: 14, frame: 0
   };
