@@ -316,12 +316,15 @@
           <button class="toggle-btn" id="spd2" onclick="setSpeed(1.6)">FAST</button>
         </div>
       </div>
+      <div class="setup-row">
+        <span class="setup-label">VR MODE</span>
+        <div class="setup-control">
+          <button class="toggle-btn active" id="vrOff" onclick="setVR(false)">MONO</button>
+          <button class="toggle-btn" id="vrOn" onclick="setVR(true)">STEREO</button>
+        </div>
+      </div>
       <div class="setup-row" style="align-items:center; color:#556; font-size:0.68rem; letter-spacing:0.05em; line-height:1.5;">
         Tilt phone to steer · Fly through rings to score
-      </div>
-      <div class="setup-row" style="display:none;">
-        <button class="toggle-btn active" id="vrOff" onclick="setVR(false)">MONO</button>
-        <button class="toggle-btn" id="vrOn" onclick="setVR(true)">STEREO</button>
       </div>
     </div>
     <button class="start-btn" id="startGameBtn">▶ START MISSION</button>
@@ -754,19 +757,19 @@ function tick(ts) {
   if(anyKey) {
     if(keys['ArrowUp']    || keys['w']) targetPitch = -0.5;
     if(keys['ArrowDown']  || keys['s']) targetPitch =  0.5;
-    if(keys['ArrowLeft']  || keys['a']) GS.yaw -= 0.03;
-    if(keys['ArrowRight'] || keys['d']) GS.yaw += 0.03;
+    if(keys['ArrowLeft']  || keys['a']) GS.yaw -= 0.04;
+    if(keys['ArrowRight'] || keys['d']) GS.yaw += 0.04;
   } else {
-    // Landscape gyro — yaw accumulates from tilt rate, pitch from gamma
     const rawPitch = -(deviceGamma + 45);
     const rawYaw   = deviceBeta;
     targetPitch = clamp(rawPitch / 20, -1, 1) * 0.9;
-    // Yaw: accumulate continuously based on tilt angle
-    const yawRate = clamp(rawYaw / 20, -1, 1) * 1.8; // radians/sec
+    // Yaw rate: proportional to tilt, stops immediately when phone is flat
+    // Dead zone of ±5° so slight wobble doesn't cause drift
+    const tiltAmt = Math.abs(rawYaw) > 5 ? rawYaw : 0;
+    const yawRate = clamp(tiltAmt / 25, -1, 1) * 2.5; // rad/sec
     GS.yaw += yawRate * dt;
   }
 
-  // Smooth pitch only (yaw accumulates above)
   GS.pitch = lerp(GS.pitch, targetPitch, dt * 4);
 
   // ── Velocity ──
