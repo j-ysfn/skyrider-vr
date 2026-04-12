@@ -411,12 +411,6 @@
     wasd-controls="enabled: false"
     fov="80">
 
-    <!-- Cockpit frame overlay -->
-    <a-entity id="cockpitFrame" position="0 -0.38 -1.2">
-      <a-plane src="#texCockpit" width="2.4" height="0.55"
-        material="transparent:true; opacity:0.92" rotation="15 0 0"></a-plane>
-    </a-entity>
-
     <!-- Cursor for gaze -->
     <a-cursor
       color="#00d4ff"
@@ -661,13 +655,26 @@ function buildRings(level) {
     wrapper.setAttribute('class', 'ring-wrapper');
     wrapper.dataset.idx = i;
 
-    // Outer ring (torus)
+    // Calculate rotation to face direction of travel (toward next ring or from prev)
+    let angle = 0;
+    if(i < path.length - 1) {
+      const nx = path[i+1].x - p.x;
+      const nz = path[i+1].z - p.z;
+      angle = Math.atan2(nx, nz) * (180 / Math.PI);
+    } else {
+      const nx = p.x - path[i-1].x;
+      const nz = p.z - path[i-1].z;
+      angle = Math.atan2(nx, nz) * (180 / Math.PI);
+    }
+
+    // Outer ring (torus) — rotated to face direction of travel
     const torus = document.createElement('a-torus');
     torus.setAttribute('radius', '12');
     torus.setAttribute('radius-tubular', '0.8');
     torus.setAttribute('color', '#00d4ff');
     torus.setAttribute('material', 'emissive:#00d4ff; emissiveIntensity:0.6; transparent:true; opacity:0.9');
     torus.setAttribute('segments-tubular', '20');
+    torus.setAttribute('rotation', `0 ${angle} 90`);
     torus.setAttribute('class', 'ring-target');
     torus.dataset.ringIdx = i;
 
@@ -678,6 +685,7 @@ function buildRings(level) {
     inner.setAttribute('color', '#ffffff');
     inner.setAttribute('material', 'emissive:#88eeff; emissiveIntensity:1; transparent:true; opacity:0.5');
     inner.setAttribute('segments-tubular', '20');
+    inner.setAttribute('rotation', `0 ${angle} 90`);
 
     // Number label
     const txt = document.createElement('a-text');
@@ -1014,7 +1022,7 @@ function startGame() {
     score: 0, level: CFG.startLevel, active: false,
     rings: [], ringsLeft: 0, buildings: [],
     yaw: 0, pitch: 0,
-    posX: 0, posY: 70, posZ: 200,
+    posX: 0, posY: 70, posZ: 400,
     velX: 0, velY: 0, velZ: 0,
     baseSpeed: 14, frame: 0
   };
