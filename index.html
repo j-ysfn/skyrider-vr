@@ -316,15 +316,12 @@
           <button class="toggle-btn" id="spd2" onclick="setSpeed(1.6)">FAST</button>
         </div>
       </div>
-      <div class="setup-row">
-        <span class="setup-label">VR MODE</span>
-        <div class="setup-control">
-          <button class="toggle-btn active" id="vrOff" onclick="setVR(false)">MONO</button>
-          <button class="toggle-btn" id="vrOn" onclick="setVR(true)">STEREO</button>
-        </div>
-      </div>
       <div class="setup-row" style="align-items:center; color:#556; font-size:0.68rem; letter-spacing:0.05em; line-height:1.5;">
         Tilt phone to steer · Fly through rings to score
+      </div>
+      <div class="setup-row" style="display:none;">
+        <button class="toggle-btn active" id="vrOff" onclick="setVR(false)">MONO</button>
+        <button class="toggle-btn" id="vrOn" onclick="setVR(true)">STEREO</button>
       </div>
     </div>
     <button class="start-btn" id="startGameBtn">▶ START MISSION</button>
@@ -616,29 +613,32 @@ function buildCity() {
    RING BUILDER
 ══════════════════════════════════ */
 const RING_PATHS = {
-  1: [  // Level 1: 8 rings, spread out, easier altitude
-    {x:0,   y:55, z:-50},
-    {x:40,  y:60, z:-100},
-    {x:-50, y:65, z:-150},
-    {x:20,  y:70, z:-200},
-    {x:-30, y:60, z:-250},
-    {x:60,  y:55, z:-300},
-    {x:-20, y:65, z:-350},
-    {x:10,  y:60, z:-400},
+  // Level 1: 8 rings — gentle circuit, wide turns, consistent altitude
+  // Player starts at Z=200 heading north (negative Z). Course sweeps left/right.
+  1: [
+    {x:  0,  y:65, z: 120},   // 1 — straight ahead from spawn
+    {x:  0,  y:65, z:  40},   // 2 — continue forward
+    {x:-50,  y:65, z: -30},   // 3 — gentle left
+    {x:-80,  y:70, z:-110},   // 4 — deeper left
+    {x:-40,  y:75, z:-190},   // 5 — climbing left arc
+    {x: 20,  y:70, z:-250},   // 6 — straighten out
+    {x: 80,  y:65, z:-180},   // 7 — bank right
+    {x: 60,  y:65, z: -90},   // 8 — finish right sweep
   ],
-  2: [  // Level 2: 12 rings, tighter, varied altitude
-    {x:0,   y:55, z:-50},
-    {x:50,  y:70, z:-90},
-    {x:-60, y:50, z:-130},
-    {x:30,  y:80, z:-170},
-    {x:-40, y:55, z:-210},
-    {x:70,  y:65, z:-250},
-    {x:-20, y:75, z:-285},
-    {x:40,  y:50, z:-320},
-    {x:-70, y:70, z:-355},
-    {x:10,  y:60, z:-390},
-    {x:-30, y:80, z:-425},
-    {x:50,  y:55, z:-460},
+  // Level 2: 12 rings — tighter circuit, varied altitude, sharper turns
+  2: [
+    {x:  0,  y:65, z: 130},   // 1
+    {x: 30,  y:70, z:  60},   // 2 — slight right
+    {x: 70,  y:60, z: -10},   // 3 — banking right
+    {x: 90,  y:75, z: -80},   // 4 — climbing right
+    {x: 50,  y:80, z:-150},   // 5 — high arc
+    {x:  0,  y:75, z:-200},   // 6 — straight
+    {x:-60,  y:65, z:-160},   // 7 — left turn
+    {x:-90,  y:55, z: -90},   // 8 — descending left
+    {x:-70,  y:60, z: -20},   // 9 — banking back
+    {x:-30,  y:70, z:  50},   // 10 — heading home
+    {x: 30,  y:75, z: 100},   // 11 — right arc home
+    {x:  0,  y:65, z: 150},   // 12 — finish near start
   ]
 };
 
@@ -752,25 +752,22 @@ function tick(ts) {
   const anyKey = Object.values(keys).some(v => v);
 
   if(anyKey) {
-    if(keys['ArrowUp']    || keys['w']) targetPitch = -0.4;
-    if(keys['ArrowDown']  || keys['s']) targetPitch =  0.4;
-    if(keys['ArrowLeft']  || keys['a']) targetYaw   -= 0.5;
-    if(keys['ArrowRight'] || keys['d']) targetYaw   += 0.5;
+    if(keys['ArrowUp']    || keys['w']) targetPitch = -0.5;
+    if(keys['ArrowDown']  || keys['s']) targetPitch =  0.5;
+    if(keys['ArrowLeft']  || keys['a']) GS.yaw -= 0.03;
+    if(keys['ArrowRight'] || keys['d']) GS.yaw += 0.03;
   } else {
-    // Landscape iOS/Android gyro:
-    // Phone held landscape (home button right):
-    //   beta  → physical left/right tilt → controls yaw
-    //   gamma → physical up/down tilt    → controls pitch
-    // Neutral hold ≈ beta=0, gamma=-45 (screen tilted up ~45°)
-    const rawPitch = -(deviceGamma + 45);  // flipped: tilt up = climb
+    // Landscape gyro — yaw accumulates from tilt rate, pitch from gamma
+    const rawPitch = -(deviceGamma + 45);
     const rawYaw   = deviceBeta;
     targetPitch = clamp(rawPitch / 20, -1, 1) * 0.9;
-    targetYaw   = clamp(rawYaw   / 20, -1, 1) * 0.9;
+    // Yaw: accumulate continuously based on tilt angle
+    const yawRate = clamp(rawYaw / 20, -1, 1) * 1.8; // radians/sec
+    GS.yaw += yawRate * dt;
   }
 
-  // Smooth
+  // Smooth pitch only (yaw accumulates above)
   GS.pitch = lerp(GS.pitch, targetPitch, dt * 4);
-  GS.yaw   = lerp(GS.yaw,   targetYaw,   dt * 4);
 
   // ── Velocity ──
   const speed = GS.baseSpeed * CFG.speedMult;
