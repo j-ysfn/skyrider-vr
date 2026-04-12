@@ -249,6 +249,9 @@
 </head>
 <body style="background:#000; overflow:hidden;">
 
+<!-- BACKGROUND MUSIC (plays across all screens) -->
+<audio id="bgMusicEl" src="music.mp3" loop preload="auto" style="display:none"></audio>
+
 <!-- ROTATE PROMPT -->
 <div id="rotatePrompt">
   <div class="r-icon">📱</div>
@@ -898,6 +901,9 @@ function endGame() {
   document.getElementById('gameOverScreen').classList.remove('hidden');
   document.getElementById('gameOverScreen').classList.add('visible');
   document.getElementById('aScene').style.display = 'none';
+  // Raise music back for end screen
+  const music = document.getElementById('bgMusicEl');
+  music.volume = 0.8;
 }
 
 function showBanner(text, cb) {
@@ -934,6 +940,8 @@ function setMusic(on) {
   CFG.musicOn = on;
   document.getElementById('musicOn').classList.toggle('active', on);
   document.getElementById('musicOff').classList.toggle('active', !on);
+  const music = document.getElementById('bgMusicEl');
+  music.volume = on ? 0.8 : 0;
 }
 function setSFX(on) {
   CFG.sfxOn = on;
@@ -970,6 +978,10 @@ function generateStars() {
    FLOW CONTROL
 ══════════════════════════════════ */
 document.getElementById('flashNextBtn').addEventListener('click', () => {
+  // Start music loud for menu screens
+  const music = document.getElementById('bgMusicEl');
+  music.volume = 0.8;
+  music.play().catch(()=>{});
   document.getElementById('flashScreen').classList.add('hidden');
   document.getElementById('setupScreen').classList.remove('hidden');
 });
@@ -997,12 +1009,10 @@ function startGame() {
   buildRings(CFG.startLevel);
   initDeviceOrientation();
 
-  // Music
-  if(CFG.musicOn) {
-    setTimeout(() => {
-      try { document.getElementById('bgMusic').components.sound.playSound(); } catch(e){}
-    }, 1000);
-  }
+  // Lower music volume for gameplay
+  const music = document.getElementById('bgMusicEl');
+  music.volume = CFG.musicOn ? 0.2 : 0;
+  music.play().catch(()=>{});
 
   // VR mode
   if(CFG.vrMode) {
