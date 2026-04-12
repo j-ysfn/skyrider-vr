@@ -861,7 +861,6 @@ function collectRing(r) {
   // Visual feedback
   r.el.setAttribute('visible', 'false');
 
-  // Sound
   if(CFG.sfxOn) {
     try { document.getElementById('sfxRing').components.sound.playSound(); } catch(e){}
   }
@@ -898,9 +897,9 @@ function endGame() {
   document.getElementById('gameOverScreen').classList.remove('hidden');
   document.getElementById('gameOverScreen').classList.add('visible');
   document.getElementById('aScene').style.display = 'none';
-  // Raise music back for end screen
-  const music = document.getElementById('bgMusicEl');
-  music.volume = 0.8;
+  // Stop engine, restart menu music
+  try { document.getElementById('sfxEngine').components.sound.stopSound(); } catch(e){}
+  startMenuMusic();
 }
 
 function showBanner(text, cb) {
@@ -945,6 +944,7 @@ function setSFX(on) {
   CFG.sfxOn = on;
   document.getElementById('sfxOn').classList.toggle('active', on);
   document.getElementById('sfxOff').classList.toggle('active', !on);
+  if(!on) { try { document.getElementById('sfxEngine').components.sound.stopSound(); } catch(e){} }
 }
 function setSpeed(s) {
   CFG.speedMult = s;
@@ -970,6 +970,21 @@ function generateStars() {
       animation-delay:${Math.random()*2}s; animation-duration:${1+Math.random()*2}s;`;
     c.appendChild(s);
   }
+}
+
+/* ══════════════════════════════════
+   AUDIO HELPERS
+══════════════════════════════════ */
+function startMenuMusic() {
+  if(!CFG.musicOn) return;
+  const music = document.getElementById('bgMusicEl');
+  music.volume = 0.8;
+  music.play().catch(()=>{});
+}
+function stopMenuMusic() {
+  const music = document.getElementById('bgMusicEl');
+  music.pause();
+  music.currentTime = 0;
 }
 
 /* ══════════════════════════════════
@@ -1004,10 +1019,13 @@ function startGame() {
   buildRings(CFG.startLevel);
   initDeviceOrientation();
 
-  // Lower music volume for gameplay
-  const music = document.getElementById('bgMusicEl');
-  music.volume = CFG.musicOn ? 0.2 : 0;
-  music.play().catch(()=>{});
+  // Stop menu music, start engine SFX
+  stopMenuMusic();
+  if(CFG.sfxOn) {
+    setTimeout(() => {
+      try { document.getElementById('sfxEngine').components.sound.playSound(); } catch(e){}
+    }, 800);
+  }
 
   // VR mode
   if(CFG.vrMode) {
@@ -1036,6 +1054,8 @@ function goSetup() {
   document.getElementById('aScene').style.display = 'none';
   document.getElementById('hud').classList.remove('visible');
   document.getElementById('setupScreen').classList.remove('hidden');
+  try { document.getElementById('sfxEngine').components.sound.stopSound(); } catch(e){}
+  startMenuMusic();
 }
 
 /* ── Util ── */
