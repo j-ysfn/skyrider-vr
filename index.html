@@ -426,12 +426,16 @@
 
   <!-- ── AUDIO ── -->
   <a-entity id="bgMusic"
-    sound="src: url(https://cdn.pixabay.com/audio/2022/08/22/audio_d1718ab41b.mp3);
-           loop: true; autoplay: false; volume: 0.3; positional: false">
+    sound="src: url(engine.mp3);
+           loop: true; autoplay: false; volume: 0.4; positional: false">
   </a-entity>
   <a-entity id="sfxRing"
-    sound="src: url(https://cdn.pixabay.com/audio/2022/03/15/audio_1a609a6d85.mp3);
-           loop: false; autoplay: false; volume: 0.8; positional: false">
+    sound="src: url(ring.mp3);
+           loop: false; autoplay: false; volume: 0.9; positional: false">
+  </a-entity>
+  <a-entity id="sfxCrash"
+    sound="src: url(crash.mp3);
+           loop: false; autoplay: false; volume: 1.0; positional: false">
   </a-entity>
 </a-scene>
 
@@ -840,6 +844,10 @@ function checkRingCollisions() {
       const hud = document.getElementById('hud');
       hud.style.background = '#ff000022';
       setTimeout(() => hud.style.background = '', 300);
+      // Crash sound
+      if(CFG.sfxOn) {
+        try { document.getElementById('sfxCrash').components.sound.playSound(); } catch(e){}
+      }
       break;
     }
   }
