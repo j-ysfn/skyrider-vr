@@ -292,8 +292,8 @@
       <div class="setup-row">
         <span class="setup-label">MUSIC</span>
         <div class="setup-control">
-          <button class="toggle-btn active" id="musicOn" onclick="setMusic(true)">ON</button>
-          <button class="toggle-btn" id="musicOff" onclick="setMusic(false)">OFF</button>
+          <button class="toggle-btn" id="musicOn" onclick="setMusic(true)">ON</button>
+          <button class="toggle-btn active" id="musicOff" onclick="setMusic(false)">OFF</button>
         </div>
       </div>
       <div class="setup-row">
@@ -443,7 +443,7 @@
 
 /* ── Config ── */
 const CFG = {
-  musicOn: true, sfxOn: true, vrMode: false,
+  musicOn: false, sfxOn: true, vrMode: false,
   startLevel: 1, speedMult: 1
 };
 
@@ -669,16 +669,15 @@ function buildRings(level) {
       angle = Math.atan2(nx, nz) * (180 / Math.PI);
     }
 
-    // Outer ring (torus) — rotated to face direction of travel
+    // Outer ring — vertical hoop, always upright
     const torus = document.createElement('a-torus');
     torus.setAttribute('radius', '12');
     torus.setAttribute('radius-tubular', '0.8');
     torus.setAttribute('color', '#00d4ff');
     torus.setAttribute('material', 'emissive:#00d4ff; emissiveIntensity:0.6; transparent:true; opacity:0.9');
     torus.setAttribute('segments-tubular', '20');
-    torus.setAttribute('rotation', `0 ${angle} 90`);
+    torus.setAttribute('rotation', `0 ${angle} 0`);
     torus.setAttribute('class', 'ring-target');
-    torus.dataset.ringIdx = i;
 
     // Inner glow ring
     const inner = document.createElement('a-torus');
@@ -686,6 +685,8 @@ function buildRings(level) {
     inner.setAttribute('radius-tubular', '0.3');
     inner.setAttribute('color', '#ffffff');
     inner.setAttribute('material', 'emissive:#88eeff; emissiveIntensity:1; transparent:true; opacity:0.5');
+    inner.setAttribute('segments-tubular', '20');
+    inner.setAttribute('rotation', `0 ${angle} 0`);ity:1; transparent:true; opacity:0.5');
     inner.setAttribute('segments-tubular', '20');
     inner.setAttribute('rotation', `0 ${angle} 90`);
 
