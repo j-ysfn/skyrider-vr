@@ -779,8 +779,8 @@ function tick(ts) {
     GS.velY = lerp(GS.velY, upV, dt * 4);
     rig.object3D.position.y += GS.velY * dt;
 
-    // Move forward in the horizontal direction camera faces (ignore Y component)
-    const flatDir = new THREE.Vector3(dir.x, 0, dir.z).normalize();
+    // Move forward in the horizontal direction camera faces (negate because Three.js -Z is forward)
+    const flatDir = new THREE.Vector3(-dir.x, 0, -dir.z).normalize();
     rig.object3D.position.x += flatDir.x * speed * dt;
     rig.object3D.position.z += flatDir.z * speed * dt;
 
