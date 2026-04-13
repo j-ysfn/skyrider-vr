@@ -404,22 +404,24 @@
   <!-- ── RINGS GROUP ── -->
   <a-entity id="ringsGroup"></a-entity>
 
-  <!-- ── COCKPIT (static in camera) ── -->
-  <a-camera id="playerCam"
-    position="0 60 0"
-    look-controls="enabled: false"
-    wasd-controls="enabled: false"
-    fov="80">
-
-    <!-- Cursor for gaze -->
-    <a-cursor
-      color="#00d4ff"
-      fuse="false"
-      raycaster="objects: .ring-target"
-      material="color: #00d4ff; shader: flat"
-      geometry="primitive: ring; radiusInner: 0.008; radiusOuter: 0.015">
-    </a-cursor>
-  </a-camera>
+  <!-- ── CAMERA RIG (we move this, not the camera directly) ── -->
+  <a-entity id="cameraRig" position="0 70 400">
+    <a-camera id="playerCam"
+      position="0 0 0"
+      look-controls="enabled: false"
+      wasd-controls="enabled: false"
+      fov="80">
+      <!-- Cursor hidden in VR, shown in mono -->
+      <a-cursor
+        id="gazeCursor"
+        color="#00d4ff"
+        fuse="false"
+        raycaster="objects: .ring-target"
+        material="color: #00d4ff; shader: flat"
+        geometry="primitive: ring; radiusInner: 0.008; radiusOuter: 0.015">
+      </a-cursor>
+    </a-camera>
+  </a-entity>
 
   <!-- ── AUDIO (SFX only - engine, ring, crash) ── -->
   <a-entity id="sfxEngine"
@@ -803,18 +805,19 @@ function tick(ts) {
   if(GS.posY < 30)  { GS.posY = 30;  GS.velY = Math.max(0, GS.velY); }
   if(GS.posY > 160) { GS.posY = 160; GS.velY = Math.min(0, GS.velY); }
 
-  // ── Apply to camera via object3D ──
+  // ── Apply position to rig, rotation to camera (mono only) ──
+  const rig = document.getElementById('cameraRig');
   const cam = document.getElementById('playerCam');
-  const obj = cam.object3D;
-  obj.position.set(GS.posX, GS.posY, GS.posZ);
-  // In stereo/VR mode, look-controls handles rotation via gyro
-  // In mono mode, we control rotation manually
+  rig.object3D.position.set(GS.posX, GS.posY, GS.posZ);
+
   if(!CFG.vrMode) {
-    obj.rotation.order = 'YXZ';
-    obj.rotation.y = -GS.yaw;
-    obj.rotation.x = GS.pitch * 0.5;
-    obj.rotation.z = -GS.yaw * 0.15;
+    // Mono: manually control camera rotation
+    cam.object3D.rotation.order = 'YXZ';
+    cam.object3D.rotation.y = -GS.yaw;
+    cam.object3D.rotation.x = GS.pitch * 0.5;
+    cam.object3D.rotation.z = -GS.yaw * 0.15;
   }
+  // VR: look-controls handles rotation, rig handles position
 
   // ── Ring collisions ──
   checkRingCollisions();
@@ -1039,13 +1042,16 @@ function startGame() {
     }, 800);
   }
 
-  // VR mode — enable look-controls for stereo, disable for mono
+  // VR mode setup
   const cam = document.getElementById('playerCam');
+  const cursor = document.getElementById('gazeCursor');
   if(CFG.vrMode) {
-    cam.setAttribute('look-controls', 'enabled: true; reverseMouseDrag: false');
+    cam.setAttribute('look-controls', 'enabled: true');
+    cursor.setAttribute('visible', 'false'); // hide cursor in VR — it causes cyan shapes
     setTimeout(() => document.getElementById('aScene').enterVR(), 500);
   } else {
     cam.setAttribute('look-controls', 'enabled: false');
+    cursor.setAttribute('visible', 'true');
   }
 
   const lvlName = CFG.startLevel === 1 ? 'LEVEL 1\nTRAINING RUN' : 'LEVEL 2\nCHALLENGE';
