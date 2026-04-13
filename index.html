@@ -273,7 +273,7 @@
   <div class="flash-subtitle">immersive flight simulator</div>
   <div class="flash-divider"></div>
   <div class="flash-credits">
-    Developed by <span>Your Name</span><br>
+    Developed by <span>Javad Yousefian & Claude</span><br>
     CMPT 461 – Immersive Computing<br>
     Trinity Western University · 2026<br>
     <span>A-Frame WebVR</span>
@@ -769,17 +769,20 @@ function tick(ts) {
     // Calibrate on first frames - capture neutral look direction
     if(!GS.vrCalibrated) {
       GS.vrCalibrated = true;
-      GS.vrNeutralY = dir.y; // remember vertical direction when game starts
+      GS.vrNeutralY = dir.y;
+      GS.vrNeutralX = dir.x; // capture neutral horizontal too
     }
 
-    // Pitch: how much above/below neutral the camera is looking
+    // Pitch: deviation from neutral vertical
     const pitchDelta = dir.y - GS.vrNeutralY;
     const upV = -pitchDelta * speed * 3.0;
     GS.velY = lerp(GS.velY, upV, dt * 4);
     rig.object3D.position.y += GS.velY * dt;
 
-    // Yaw: rotate rig based on horizontal look direction
-    const targetYawRate = clamp(dir.x / 0.5, -1, 1) * 1.8; // banking left/right
+    // Yaw: deviation from neutral horizontal - dead zone ±0.05 to avoid drift
+    const rawX = dir.x - GS.vrNeutralX;
+    const yawInput = Math.abs(rawX) > 0.05 ? rawX : 0;
+    const targetYawRate = clamp(yawInput / 0.4, -1, 1) * 1.8;
     GS.yaw += targetYawRate * dt;
     rig.object3D.rotation.y = -GS.yaw;
 
@@ -1049,7 +1052,7 @@ function startGame() {
     posX: 0, posY: 70, posZ: 200,
     velX: 0, velY: 0, velZ: 0,
     baseSpeed: 14, frame: 0,
-    vrCalibrated: false, vrNeutralY: 0
+    vrCalibrated: false, vrNeutralY: 0, vrNeutralX: 0
   };
 
   buildCity();
