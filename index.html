@@ -405,7 +405,7 @@
   <a-entity id="ringsGroup"></a-entity>
 
   <!-- ── CAMERA RIG (we move this, not the camera directly) ── -->
-  <a-entity id="cameraRig" position="0 70 400">
+  <a-entity id="cameraRig" position="0 70 200">
     <a-camera id="playerCam"
       position="0 0 0"
       look-controls="enabled: false"
@@ -764,60 +764,72 @@ function tick(ts) {
   const dt = Math.min((ts - lastTime) / 1000, 0.05);
   lastTime = ts;
 
-  // ── Determine pitch/yaw from device or keyboard ──
-  let targetPitch = 0, targetYaw = 0;
-  const anyKey = Object.values(keys).some(v => v);
-
-  if(anyKey) {
-    if(keys['ArrowUp']    || keys['w']) targetPitch = -0.5;
-    if(keys['ArrowDown']  || keys['s']) targetPitch =  0.5;
-    if(keys['ArrowLeft']  || keys['a']) GS.yaw -= 0.04;
-    if(keys['ArrowRight'] || keys['d']) GS.yaw += 0.04;
-  } else {
-    const rawPitch = -(deviceGamma + 45);
-    const rawYaw   = deviceBeta;
-    targetPitch = clamp(rawPitch / 20, -1, 1) * 0.9;
-    // Yaw rate: proportional to tilt, stops immediately when phone is flat
-    // Dead zone of ±5° so slight wobble doesn't cause drift
-    const tiltAmt = Math.abs(rawYaw) > 5 ? rawYaw : 0;
-    const yawRate = clamp(tiltAmt / 25, -1, 1) * 2.5; // rad/sec
-    GS.yaw += yawRate * dt;
-  }
-
-  GS.pitch = lerp(GS.pitch, targetPitch, dt * 4);
-
-  // ── Velocity ──
   const speed = GS.baseSpeed * CFG.speedMult;
-  const fwdX = Math.sin(GS.yaw)  * speed;
-  const fwdZ = -Math.cos(GS.yaw) * speed;
-  const upV  = GS.pitch * speed * 1.5;  // positive pitch = climb
 
-  GS.velX = lerp(GS.velX, fwdX, dt * 3);
-  GS.velZ = lerp(GS.velZ, fwdZ, dt * 3);
-  GS.velY = lerp(GS.velY, upV,  dt * 4); // faster vertical response
+  if(CFG.vrMode) {
+    // ── VR MODE: move rig in direction camera is facing ──
+    const rig = document.getElementById('cameraRig');
+    rig.object3D.translateZ(-speed * dt); // always fly forward in look direction
 
-  // ── Position ──
-  GS.posX += GS.velX * dt;
-  GS.posY += GS.velY * dt;
-  GS.posZ += GS.velZ * dt;
+    // Vertical from gyro pitch (gamma) even in VR
+    const rawPitch = -(deviceGamma + 45);
+    const upV = clamp(rawPitch / 20, -1, 1) * speed * 1.2;
+    GS.velY = lerp(GS.velY, upV, dt * 4);
+    rig.object3D.position.y += GS.velY * dt;
 
-  // Altitude clamp
-  if(GS.posY < 30)  { GS.posY = 30;  GS.velY = Math.max(0, GS.velY); }
-  if(GS.posY > 160) { GS.posY = 160; GS.velY = Math.min(0, GS.velY); }
+    // Altitude clamp
+    if(rig.object3D.position.y < 30)  rig.object3D.position.y = 30;
+    if(rig.object3D.position.y > 160) rig.object3D.position.y = 160;
 
-  // ── Apply position to rig, rotation to camera (mono only) ──
-  const rig = document.getElementById('cameraRig');
-  const cam = document.getElementById('playerCam');
-  rig.object3D.position.set(GS.posX, GS.posY, GS.posZ);
+    // Sync GS position for collision detection
+    GS.posX = rig.object3D.position.x;
+    GS.posY = rig.object3D.position.y;
+    GS.posZ = rig.object3D.position.z;
 
-  if(!CFG.vrMode) {
-    // Mono: manually control camera rotation
+  } else {
+    // ── MONO MODE: manual gyro/keyboard control ──
+    let targetPitch = 0;
+    const anyKey = Object.values(keys).some(v => v);
+
+    if(anyKey) {
+      if(keys['ArrowUp']    || keys['w']) targetPitch = -0.5;
+      if(keys['ArrowDown']  || keys['s']) targetPitch =  0.5;
+      if(keys['ArrowLeft']  || keys['a']) GS.yaw -= 0.04;
+      if(keys['ArrowRight'] || keys['d']) GS.yaw += 0.04;
+    } else {
+      const rawPitch = -(deviceGamma + 45);
+      const rawYaw   = deviceBeta;
+      targetPitch = clamp(rawPitch / 20, -1, 1) * 0.9;
+      const tiltAmt = Math.abs(rawYaw) > 5 ? rawYaw : 0;
+      const yawRate = clamp(tiltAmt / 25, -1, 1) * 2.5;
+      GS.yaw += yawRate * dt;
+    }
+
+    GS.pitch = lerp(GS.pitch, targetPitch, dt * 4);
+
+    const fwdX = Math.sin(GS.yaw)  * speed;
+    const fwdZ = -Math.cos(GS.yaw) * speed;
+    const upV  = GS.pitch * speed * 1.5;
+
+    GS.velX = lerp(GS.velX, fwdX, dt * 3);
+    GS.velZ = lerp(GS.velZ, fwdZ, dt * 3);
+    GS.velY = lerp(GS.velY, upV,  dt * 4);
+
+    GS.posX += GS.velX * dt;
+    GS.posY += GS.velY * dt;
+    GS.posZ += GS.velZ * dt;
+
+    if(GS.posY < 30)  { GS.posY = 30;  GS.velY = Math.max(0, GS.velY); }
+    if(GS.posY > 160) { GS.posY = 160; GS.velY = Math.min(0, GS.velY); }
+
+    const rig = document.getElementById('cameraRig');
+    const cam = document.getElementById('playerCam');
+    rig.object3D.position.set(GS.posX, GS.posY, GS.posZ);
     cam.object3D.rotation.order = 'YXZ';
     cam.object3D.rotation.y = -GS.yaw;
     cam.object3D.rotation.x = GS.pitch * 0.5;
     cam.object3D.rotation.z = -GS.yaw * 0.15;
   }
-  // VR: look-controls handles rotation, rig handles position
 
   // ── Ring collisions ──
   checkRingCollisions();
@@ -1025,7 +1037,7 @@ function startGame() {
     score: 0, level: CFG.startLevel, active: false,
     rings: [], ringsLeft: 0, buildings: [],
     yaw: 0, pitch: 0,
-    posX: 0, posY: 70, posZ: 400,
+    posX: 0, posY: 70, posZ: 200,
     velX: 0, velY: 0, velZ: 0,
     baseSpeed: 14, frame: 0
   };
